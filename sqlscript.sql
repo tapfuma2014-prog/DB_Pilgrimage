@@ -10,6 +10,22 @@
 -- ============================================================================
 
 -- Function to update the updated_date timestamp
+
+
+
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR PRIMARY KEY,
+    full_name VARCHAR NOT NULL,
+    email VARCHAR UNIQUE NOT NULL,
+    role VARCHAR NOT NULL,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    password VARCHAR(255),
+    CONSTRAINT users_role_check CHECK (role IN ('admin', 'user'))
+);
+
+
+
 CREATE OR REPLACE FUNCTION update_updated_date_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -18,6 +34,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Add the trigger for updated_date
+CREATE TRIGGER update_users_updated_date
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_column();
 -- Function to sync follower count when artist_follows changes
 CREATE OR REPLACE FUNCTION sync_artist_follower_count()
 RETURNS TRIGGER AS $$
@@ -91,6 +112,46 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 -- TABLES, INDEXES, AND TRIGGERS
 -- ============================================================================
+
+
+ALTER TABLE IF EXISTS users
+    OWNER to postgres;
+-- Index: idx_users_created_date
+
+-- DROP INDEX IF EXISTS idx_users_created_date;
+
+CREATE INDEX IF NOT EXISTS idx_users_created_date
+    ON users USING btree
+    (created_date DESC NULLS FIRST)
+    TABLESPACE pg_default;
+-- Index: idx_users_email
+
+-- DROP INDEX IF EXISTS idx_users_email;
+
+CREATE INDEX IF NOT EXISTS idx_users_email
+    ON users USING btree
+    (email COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_users_role
+
+-- DROP INDEX IF EXISTS idx_users_role;
+
+CREATE INDEX IF NOT EXISTS idx_users_role
+    ON users USING btree
+    (role COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+-- Trigger: update_users_updated_date
+
+-- DROP TRIGGER IF EXISTS update_users_updated_date ON users;
+
+CREATE OR REPLACE TRIGGER update_users_updated_date
+    BEFORE UPDATE 
+    ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_date_column();
+
+
 
 -- 1. GARDENS
 CREATE TABLE gardens (
